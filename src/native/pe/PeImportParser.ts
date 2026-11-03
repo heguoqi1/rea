@@ -268,6 +268,9 @@ export const parsePeImports = async (
   ): Promise<PeImportFunction[]> => {
     const thunkWidth = bits === 64 ? 8 : 4;
     const ordinalFlag = bits === 64 ? ORDINAL_FLAG64 : ORDINAL_FLAG32;
+    // PE32 spends bit 31 on the ordinal flag, so a named Hint/Name RVA is 31
+    // bits wide. PE32+ spends bit 63 and keeps the whole 32-bit RVA space.
+    const hintNameRvaEnd = bits === 64 ? PE_RVA_END : 0x80000000;
     const functions: PeImportFunction[] = [];
     for (let index = 0; ; index++) {
       await checkpoint();
@@ -301,12 +304,12 @@ export const parsePeImports = async (
         });
         continue;
       }
-      if (thunk > 0x7fffffffn) {
+      if (thunk >= BigInt(hintNameRvaEnd)) {
         issues.push({
           code: "malformed_entry",
           location: `0x${thunkHex}`,
           message:
-            "A named import thunk uses bits outside its 31-bit hint/name RVA",
+            "A named import thunk uses bits outside its hint/name RVA space",
         });
         continue;
       }

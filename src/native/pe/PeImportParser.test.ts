@@ -672,6 +672,20 @@ it("preserves an invalid wide named thunk without rounding its source value", as
   expect(report.imphash.md5).toBeNull();
 });
 
+it("reads PE32+ named imports above the 31-bit RVA boundary", async () => {
+  // PE32+ spends bit 63 on the ordinal flag, so a Hint/Name RVA keeps the
+  // whole 32-bit RVA space. pefile 2024.8.26 masks only that bit.
+  const bytes = peImportImage({ bits: 64, sectionRva: 0x80000000 });
+  const report = await parse(bytes);
+  expect(report.imports[0]?.functions.map((row) => row.name)).toEqual([
+    "GetProcAddress",
+    "ExitProcess",
+  ]);
+  expect(report.issues).toEqual([]);
+  expect(report.coverage.status).toBe("complete");
+  expect(report.imphash.md5).toBe("92cef6cc91a85825f3c8a0516517c66f");
+});
+
 it.each(["function", "DLL"])(
   "retains a cross-section %s name but withholds an unproven pefile hash",
   async (kind) => {

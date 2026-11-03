@@ -35,9 +35,12 @@ export const peImportImage = (
     readonly delayDirectory?: boolean;
     readonly sectionBytes?: number;
     readonly splitAt?: number;
+    /** Virtual address of the single `.idata` section; a sparse high RVA is valid. */
+    readonly sectionRva?: number;
   } = {},
 ): Buffer => {
   const sectionBytes = options.sectionBytes ?? SECTION_BYTES;
+  const sectionRva = options.sectionRva ?? SECTION_RVA;
   const bits = options.bits ?? 64;
   const dlls = options.dlls ?? [
     {
@@ -69,17 +72,17 @@ export const peImportImage = (
   const section = optional + optionalSize;
   bytes.write(".idata", section, "ascii");
   bytes.writeUInt32LE(sectionBytes, section + 8);
-  bytes.writeUInt32LE(SECTION_RVA, section + 12);
+  bytes.writeUInt32LE(sectionRva, section + 12);
   bytes.writeUInt32LE(sectionBytes, section + 16);
   bytes.writeUInt32LE(SECTION_OFFSET, section + 20);
   bytes.writeUInt32LE(0x40000040, section + 36);
 
-  const at = (rva: number) => rva - SECTION_RVA + SECTION_OFFSET;
+  const at = (rva: number) => rva - sectionRva + SECTION_OFFSET;
   const writeThunk = (rva: number, value: bigint): void => {
     if (wide) bytes.writeBigUInt64LE(value, at(rva));
     else bytes.writeUInt32LE(Number(value), at(rva));
   };
-  let cursor = SECTION_RVA;
+  let cursor = sectionRva;
   const place = (size: number): number => {
     const rva = cursor;
     cursor += size;
@@ -163,7 +166,7 @@ export const peImportImage = (
   const second = section + 40;
   split.write(".idata2", second, "ascii");
   split.writeUInt32LE(tail, second + 8);
-  split.writeUInt32LE(SECTION_RVA + head, second + 12);
+  split.writeUInt32LE(sectionRva + head, second + 12);
   split.writeUInt32LE(tail, second + 16);
   split.writeUInt32LE(moved, second + 20);
   split.writeUInt32LE(0x40000040, second + 36);
