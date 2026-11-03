@@ -152,7 +152,8 @@
     {
       "files": [
         "scripts/lib/http3-capture-assertions.test.mjs",
-        "scripts/lib/http3-verifier-lifecycle.test.mjs"
+        "scripts/lib/http3-verifier-lifecycle.test.mjs",
+        "website/worker.test.mjs"
       ],
       "rules": {
         "typescript/no-floating-promises": [
