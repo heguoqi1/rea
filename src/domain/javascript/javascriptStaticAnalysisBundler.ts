@@ -252,7 +252,13 @@ const recoverBundlerModule = (
 } | null => {
   const { runtime, bindings } = context;
   const factory = moduleFactory(property);
-  if (factory === undefined) return null;
+  // A table entry without a literal factory, such as a spread or a re-exported
+  // identifier, contributes no recovered module. Count it so the incomplete
+  // module table stays visible in coverage instead of reading as complete.
+  if (factory === undefined) {
+    accumulator.unknownFindings += 1;
+    return null;
+  }
   const key = modulePropertyName(property);
   if (key.startsWith("[computed@") || key.startsWith("[unknown@"))
     accumulator.unknownFindings += 1;

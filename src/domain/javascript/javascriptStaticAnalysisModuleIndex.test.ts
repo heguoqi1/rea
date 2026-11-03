@@ -414,3 +414,27 @@ it("retains the chunk runtime through a TypeScript-only expression wrapper", () 
     }),
   ]);
 });
+
+it("counts an unrecovered module-table entry as an unknown finding", () => {
+  const spread = analyzeJavaScriptStaticSource(
+    'globalThis.webpackChunkApp.push([[1], { "./a.js": function () {}, ...globalThis.other }]);',
+  );
+  expect(spread.bundler_registrations[0]?.modules).toEqual([
+    expect.objectContaining({ module_key: "./a.js" }),
+  ]);
+  expect(spread.parse_status).toBe("partial");
+  expect(spread.analysis_coverage?.semantics.unknown_findings).toBe(1);
+
+  const reexport = analyzeJavaScriptStaticSource(
+    'globalThis.webpackChunkApp.push([[1], { "./a.js": require_a }]);',
+  );
+  expect(reexport.bundler_registrations[0]?.modules).toEqual([]);
+  expect(reexport.parse_status).toBe("partial");
+  expect(reexport.analysis_coverage?.semantics.unknown_findings).toBe(1);
+
+  const literal = analyzeJavaScriptStaticSource(
+    'globalThis.webpackChunkApp.push([[1], { "./a.js": function () {} }]);',
+  );
+  expect(literal.parse_status).toBe("complete");
+  expect(literal.analysis_coverage?.semantics.unknown_findings).toBe(0);
+});
