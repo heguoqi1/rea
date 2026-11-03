@@ -597,3 +597,14 @@ it.each(["page?notes.js", "page#notes.js", "page.js?notes", "page.js#notes"])(
     expect(result.routes).toEqual([]);
   },
 );
+
+it("orders routes by Unicode code point", () => {
+  const result = build([
+    source("app/\u{1F600}/page.js", ""),
+    source("app/\u{FFFD}/page.js", ""),
+  ]);
+  expect(result.routes.map(({ path }) => path)).toEqual([
+    "/\u{FFFD}",
+    "/\u{1F600}",
+  ]);
+});

@@ -1,5 +1,6 @@
 import { javascriptSourceRangeSchema } from "./javascriptSourceCoordinates.js";
 import { digestCanonicalValue } from "../canonicalDigest.js";
+import { compareUnicodeCodePoints } from "../unicodeCodePointOrder.js";
 import { z } from "zod";
 import { jsonValueByteLength } from "../jsonValueByteLength.js";
 import type { JsonValue } from "../jsonValue.js";
@@ -302,7 +303,6 @@ export type JavaScriptRouteCaptureOmission = NonNullable<
   z.infer<typeof javaScriptRouteGapSchema>["capture_omission"]
 > & { readonly reason: string };
 const routeId = (path: string): string => lookupId("jsr", path);
-const order = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 const ranks = { low: 0, medium: 1, high: 2 } as const;
 const classify = (
   path: string,
@@ -674,22 +674,30 @@ export function* buildJavaScriptRouteInventorySteps(
       if (capacity !== null) break;
     }
   }
-  sources.sort((a, b) => order(a.key, b.key) || order(a.id, b.id));
-  occurrences.sort((a, b) => order(a.id, b.id));
-  const items = [...routes.values()].sort((a, b) => order(a.path, b.path));
-  for (const route of items) route.mechanisms.sort(order);
+  sources.sort(
+    (a, b) =>
+      compareUnicodeCodePoints(a.key, b.key) ||
+      compareUnicodeCodePoints(a.id, b.id),
+  );
+  occurrences.sort((a, b) => compareUnicodeCodePoints(a.id, b.id));
+  const items = [...routes.values()].sort((a, b) =>
+    compareUnicodeCodePoints(a.path, b.path),
+  );
+  for (const route of items) route.mechanisms.sort(compareUnicodeCodePoints);
   unknowns.sort(
     (a, b) =>
-      order(a.source_id ?? "", b.source_id ?? "") ||
-      order(a.kind, b.kind) ||
+      compareUnicodeCodePoints(a.source_id ?? "", b.source_id ?? "") ||
+      compareUnicodeCodePoints(a.kind, b.kind) ||
       (a.source_range?.start.line ?? 0) - (b.source_range?.start.line ?? 0) ||
       (a.source_range?.start.column ?? 0) -
         (b.source_range?.start.column ?? 0) ||
       (a.source_range?.end.line ?? 0) - (b.source_range?.end.line ?? 0) ||
       (a.source_range?.end.column ?? 0) - (b.source_range?.end.column ?? 0) ||
-      order(a.reason, b.reason),
+      compareUnicodeCodePoints(a.reason, b.reason),
   );
-  const source_manifest_sha256 = hash(manifestIds.sort(order));
+  const source_manifest_sha256 = hash(
+    manifestIds.sort(compareUnicodeCodePoints),
+  );
   const result: Omit<JavaScriptRouteInventory, "inventory_id"> = {
     source_manifest_sha256,
     sources,

@@ -1,5 +1,6 @@
 import type { JavaScriptSemanticPropertyPath } from "./javascriptSemanticPropertyPaths.js";
 import { SEMANTIC_ALIAS_SELECTION_LIMIT } from "./javascriptSemanticResourceLimits.js";
+import { compareUnicodeCodePoints } from "../unicodeCodePointOrder.js";
 
 type PropertyKey = JavaScriptSemanticPropertyPath[number];
 
@@ -22,7 +23,7 @@ const selection = (choices: readonly PropertyKey[]): SemanticAliasSelection => {
   const alternatives = [
     ...new Map(choices.map((choice) => [JSON.stringify(choice), choice])),
   ]
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    .sort(([left], [right]) => compareUnicodeCodePoints(left, right))
     .map(([, choice]) => choice);
   return alternatives.length === 1 ? alternatives[0]! : { alternatives };
 };
